@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Form</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+<section class="mt-16 bg-blue-50 p-12 rounded-lg"> 
+    <h3 class="text-3xl font-bold text-center mb-8 text-blue-800">Свяжитесь с нами</h3> 
+    <form class="max-w-xl mx-auto" action="https://domain/submit-form" method="POST"> 
+        <input type="hidden" name="form_id" value="{{ form_id }}"> 
+        <div class="grid md:grid-cols-2 gap-4"> 
+            <input type="text" name="name" placeholder="Ваше имя" class="w-full p-3 rounded-lg border" required> 
+            <input type="tel" name="phone" placeholder="Телефон" class="w-full p-3 rounded-lg border" required> 
+        </div> 
+            <input type="email" name="email" placeholder="Электронная почта" class="w-full p-3 rounded-lg border mt-4" required> 
+            <textarea name="message" placeholder="Ваш вопрос" class="w-full p-3 rounded-lg border mt-4 h-32" required></textarea> 
+            <button type="submit" class="w-full bg-blue-600 text-white p-3 rounded-lg mt-4 hover:bg-blue-700 transition"> Отправить сообщение </button> 
+        </form> 
+    </section>
+</body>
+</html>

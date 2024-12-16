@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Submitted Forms</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: var(--background-color, #ffffff);
+            color: var(--text-color, #000000);
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .form-item {
+            background-color: var(--item-bg, #f9f9f9);
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 15px;
+            margin-bottom: 10px;
+            transition: transform 0.2s;
+        }
+
+        .form-item:hover {
+            transform: translateY(-5px);
+        }
+
+        .form-item h3 {
+            margin: 0 0 10px;
+            font-size: 1.2em;
+        }
+
+        .form-item p {
+            margin: 5px 0;
+            font-size: 0.9em;
+            color: var(--text-secondary-color, #666666);
+        }
+
+        .button {
+            display: inline-block;
+            padding: 8px 12px;
+            margin-right: 5px;
+            border: none;
+            border-radius: 4px;
+            background-color: var(--button-bg, #007bff);
+            color: var(--button-text, #ffffff);
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+
+        .button:hover {
+            background-color: var(--button-hover-bg, #0056b3);
+            transform: translateY(-2px);
+        }
+
+        .refresh-button {
+            display: block;
+            margin: 0 auto 20px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            background-color: var(--button-bg, #007bff);
+            color: var(--button-text, #ffffff);
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            font-size: 1em;
+        }
+
+        .refresh-button:hover {
+            background-color: var(--button-hover-bg, #0056b3);
+            transform: translateY(-2px);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            body {
+                background-color: #121212;
+                color: #ffffff;
+            }
+
+            .form-item {
+                background-color: #1f1f1f;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
+            }
+
+            .form-item p {
+                color: #aaaaaa;
+            }
+
+            .button, .refresh-button {
+                background-color: #3700b3;
+            }
+
+            .button:hover, .refresh-button:hover {
+                background-color: #bb86fc;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Список форм связи</h1>
+    <button class="refresh-button" onclick="fetchForms()">Обновить список форм</button>
+    <div id="forms-list"></div>
+
+    <script>
+        async function fetchForms() {
+            const response = await fetch('/get-forms');
+            const forms = await response.json();
+            const formsList = document.getElementById('forms-list');
+            formsList.innerHTML = '';
+
+            // Отображение форм в обратном порядке, чтобы новые формы были сверху
+            forms.reverse().forEach(form => {
+                const formDiv = document.createElement('div');
+                formDiv.className = 'form-item';
+                formDiv.innerHTML = `
+                    <h3>${form.name}</h3>
+                    <p>Телефон: ${form.phone}</p>
+                    <p>Email: ${form.email}</p>
+                    <p>Отправлено: ${form.timestamp}</p>
+                    <p>${form.viewed ? 'Просмотрено' : 'Новое'}</p>
+                    <button class="button" onclick="viewForm(${form.id})">Просмотр</button>
+                    <button class="button" onclick="toggleViewed(${form.id})">${form.viewed ? 'Отметить как непросмотренное' : 'Отметить как просмотренное'}</button>
+                    <button class="button" onclick="deleteForm(${form.id})">Удалить</button>
+                `;
+                formsList.appendChild(formDiv);
+            });
+        }
+
+        async function viewForm(id) {
+            const response = await fetch(`/get-form/${id}`);
+            const form = await response.json();
+            alert(`Имя: ${form.name}\nТелефон: ${form.phone}\nEmail: ${form.email}\nСообщение: ${form.message}\nОтправлено: ${form.timestamp}`);
+        }
+
+        async function toggleViewed(id) {
+            await fetch(`/toggle-viewed/${id}`, { method: 'POST' });
+            fetchForms();
+        }
+
+        async function deleteForm(id) {
+            await fetch(`/delete-form/${id}`, { method: 'POST' });
+            fetchForms();
+        }
+
+        window.onload = fetchForms;
+    </script>
+</body>
+</html>
