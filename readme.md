@@ -2,11 +2,13 @@
 
 Telegram bot and server for receiving forms from the site and viewing them in the telegram bot via MiniApp
 
-Currently supported languages: Russian
+**Currently supported languages:** Russian
 
-Functions: view form, mark (viewed/unviewed), delete
+**Functions:** view form, mark (viewed/unviewed), delete
 
-Tested on: Ubuntu 24.04
+**Tested on:** Ubuntu 24.04
+
+**Known vulnerabilities:** [Critical] No permission check when opening miniapp.html
 ## How to Install
 
 1. Installing Dependencies and Applications:
