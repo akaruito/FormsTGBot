@@ -1,0 +1,26 @@
+[Unit]
+Description=Forms Telegram Bot web application
+After=network.target
+StartLimitIntervalSec=120
+StartLimitBurst=5
+
+[Service]
+User=forms-tgbot
+Group=forms-tgbot
+EnvironmentFile=/etc/forms-tgbot/environment
+Environment=PYTHONDONTWRITEBYTECODE=1
+WorkingDirectory=/opt/forms-tgbot
+ExecStart=/opt/forms-tgbot/.venv/bin/gunicorn --no-control-socket --bind 127.0.0.1:5000 --workers 2 --threads 4 --timeout 20 --graceful-timeout 15 server:app
+Restart=on-failure
+RestartSec=5
+UMask=0077
+StateDirectory=forms-tgbot
+StateDirectoryMode=0700
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,27 @@
+[Unit]
+Description=Forms Telegram Bot %i
+Wants=network-online.target
+After=network-online.target
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+User=forms-tgbot
+Group=forms-tgbot
+EnvironmentFile=/etc/forms-tgbot/environment
+Environment=PYTHONDONTWRITEBYTECODE=1
+WorkingDirectory=/opt/forms-tgbot
+ExecStart=/opt/forms-tgbot/.venv/bin/python -m %i
+Restart=on-failure
+RestartSec=10
+UMask=0077
+StateDirectory=forms-tgbot
+StateDirectoryMode=0700
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

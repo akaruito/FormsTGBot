@@ -1,155 +1,170 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Submitted Forms</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-
-    <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            background-color: var(--background-color, #ffffff);
-            color: var(--text-color, #000000);
-            margin: 0;
-            padding: 20px;
-        }
-
-        h1 {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        .form-item {
-            background-color: var(--item-bg, #f9f9f9);
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            padding: 15px;
-            margin-bottom: 10px;
-            transition: transform 0.2s;
-        }
-
-        .form-item:hover {
-            transform: translateY(-5px);
-        }
-
-        .form-item h3 {
-            margin: 0 0 10px;
-            font-size: 1.2em;
-        }
-
-        .form-item p {
-            margin: 5px 0;
-            font-size: 0.9em;
-            color: var(--text-secondary-color, #666666);
-        }
-
-        .button {
-            display: inline-block;
-            padding: 8px 12px;
-            margin-right: 5px;
-            border: none;
-            border-radius: 4px;
-            background-color: var(--button-bg, #007bff);
-            color: var(--button-text, #ffffff);
-            cursor: pointer;
-            transition: background-color 0.3s, transform 0.2s;
-        }
-
-        .button:hover {
-            background-color: var(--button-hover-bg, #0056b3);
-            transform: translateY(-2px);
-        }
-
-        .refresh-button {
-            display: block;
-            margin: 0 auto 20px;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            background-color: var(--button-bg, #007bff);
-            color: var(--button-text, #ffffff);
-            cursor: pointer;
-            transition: background-color 0.3s, transform 0.2s;
-            font-size: 1em;
-        }
-
-        .refresh-button:hover {
-            background-color: var(--button-hover-bg, #0056b3);
-            transform: translateY(-2px);
-        }
-
-        @media (prefers-color-scheme: dark) {
-            body {
-                background-color: #121212;
-                color: #ffffff;
-            }
-
-            .form-item {
-                background-color: #1f1f1f;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
-            }
-
-            .form-item p {
-                color: #aaaaaa;
-            }
-
-            .button, .refresh-button {
-                background-color: #3700b3;
-            }
-
-            .button:hover, .refresh-button:hover {
-                background-color: #bb86fc;
-            }
-        }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Submissions</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='miniapp.css') }}">
+    <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
+    <script src="{{ url_for('static', filename='integrations.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='miniapp.js') }}" defer></script>
 </head>
 <body>
-    <h1>Список форм связи</h1>
-    <button class="refresh-button" onclick="fetchForms()">Обновить список форм</button>
-    <div id="forms-list"></div>
+    <main class="workspace">
+        <header class="page-header">
+            <h1 id="page-title" tabindex="-1">Submissions</h1>
+            <button type="button" id="refresh" class="refresh-btn">↻ Refresh</button>
+        </header>
 
-    <script>
-        async function fetchForms() {
-            const response = await fetch('/get-forms');
-            const forms = await response.json();
-            const formsList = document.getElementById('forms-list');
-            formsList.innerHTML = '';
+        <nav id="workspace-nav" class="filter-tabs" aria-label="App sections" hidden>
+            <button type="button" class="tab-btn" data-panel="forms" aria-controls="forms-view" aria-pressed="true">Submissions</button>
+            <button type="button" class="tab-btn" data-panel="integrations" aria-controls="integrations-view" aria-pressed="false">API keys</button>
+        </nav>
 
-            // Отображение форм в обратном порядке, чтобы новые формы были сверху
-            forms.reverse().forEach(form => {
-                const formDiv = document.createElement('div');
-                formDiv.className = 'form-item';
-                formDiv.innerHTML = `
-                    <h3>${form.name}</h3>
-                    <p>Телефон: ${form.phone}</p>
-                    <p>Email: ${form.email}</p>
-                    <p>Отправлено: ${form.timestamp}</p>
-                    <p>${form.viewed ? 'Просмотрено' : 'Новое'}</p>
-                    <button class="button" onclick="viewForm(${form.id})">Просмотр</button>
-                    <button class="button" onclick="toggleViewed(${form.id})">${form.viewed ? 'Отметить как непросмотренное' : 'Отметить как просмотренное'}</button>
-                    <button class="button" onclick="deleteForm(${form.id})">Удалить</button>
-                `;
-                formsList.appendChild(formDiv);
-            });
-        }
+        <p id="list-status" class="list-status" role="status">Loading submissions…</p>
+        <section id="forms-view" aria-label="Submissions" hidden>
+            <div id="filters" class="filter-tabs" role="group" aria-label="Filter submissions" hidden>
+                <button type="button" class="tab-btn" data-status="all" aria-pressed="true">All (<span id="count-all">0</span>)</button>
+                <button type="button" class="tab-btn" data-status="new" aria-pressed="false">New (<span id="count-new">0</span>)</button>
+                <button type="button" class="tab-btn" data-status="viewed" aria-pressed="false">Viewed (<span id="count-viewed">0</span>)</button>
+                <button type="button" class="tab-btn" data-status="deleted" aria-pressed="false" hidden>Trash (<span id="count-deleted">0</span>)</button>
+            </div>
+            <ul id="forms" class="forms" aria-label="Submissions list"></ul>
+            <button type="button" id="load-more" class="btn btn-secondary load-more" hidden>Load more</button>
+        </section>
 
-        async function viewForm(id) {
-            const response = await fetch(`/get-form/${id}`);
-            const form = await response.json();
-            alert(`Имя: ${form.name}\nТелефон: ${form.phone}\nEmail: ${form.email}\nСообщение: ${form.message}\nОтправлено: ${form.timestamp}`);
-        }
+        <section id="integrations-view" class="integrations" aria-labelledby="integration-title" hidden>
+            <form id="create-integration" class="form-card integration-create" method="post" autocomplete="off">
+                <h2 id="integration-title">New API key</h2>
+                <div class="integration-field">
+                    <label for="integration-name">Name</label>
+                    <input id="integration-name" name="label" type="text" maxlength="80" required>
+                </div>
+                <div class="integration-field">
+                    <label for="integration-origin">Allowed website</label>
+                    <input id="integration-origin" name="origin" type="url" inputmode="url" maxlength="270"
+                           placeholder="https://example.com" aria-describedby="origin-hint" required>
+                    <p id="origin-hint" class="integration-hint">Enter the website’s HTTPS address without a page path.</p>
+                </div>
+                <div class="integration-field">
+                    <label for="integration-expiry">Expires in (days)</label>
+                    <input id="integration-expiry" name="expires_days" type="number" inputmode="numeric"
+                           min="1" max="365" value="90" required>
+                </div>
+                <button type="submit" id="create-integration-button" class="btn btn-primary">Create key</button>
+            </form>
 
-        async function toggleViewed(id) {
-            await fetch(`/toggle-viewed/${id}`, { method: 'POST' });
-            fetchForms();
-        }
+            <div id="integration-secret" class="form-card" hidden>
+                <div class="integration-field">
+                    <label for="integration-secret-value">Secret key</label>
+                    <textarea id="integration-secret-value" class="integration-code" rows="2" readonly
+                              spellcheck="false" autocomplete="off" autocapitalize="none" aria-describedby="secret-hint"></textarea>
+                    <p id="secret-hint" class="integration-hint">
+                        This key is shown only once. Store it as a server secret.
+                        Send it when making a POST request to <code>/api/v1/submissions</code> using the <code>Authorization: Bearer</code> header.
+                    </p>
+                </div>
+                <div class="card-actions">
+                    <button type="button" id="copy-secret" class="btn btn-primary">Copy key</button>
+                    <button type="button" id="hide-secret" class="btn btn-secondary">Hide</button>
+                </div>
+            </div>
 
-        async function deleteForm(id) {
-            await fetch(`/delete-form/${id}`, { method: 'POST' });
-            fetchForms();
-        }
+            <p id="integration-status" class="list-status" role="status"></p>
+            <ul id="integration-list" class="forms" aria-label="API keys"></ul>
 
-        window.onload = fetchForms;
-    </script>
+            <dialog id="revoke-integration" class="details" aria-labelledby="revoke-integration-title">
+                <h2 id="revoke-integration-title">Revoke this key?</h2>
+                <p class="integration-hint integration-warning">Revoking this key disables its embedded form and server API access.</p>
+                <p id="revoke-integration-status" class="detail-status" role="status"></p>
+                <div class="card-actions">
+                    <button type="button" id="cancel-revoke-integration" class="btn btn-secondary" autofocus>Cancel</button>
+                    <button type="button" id="confirm-revoke-integration" class="btn btn-danger">Revoke key</button>
+                </div>
+            </dialog>
+        </section>
+
+        <noscript><p>To view submissions, open the Mini App in Telegram with JavaScript enabled.</p></noscript>
+    </main>
+
+    <template id="form-card">
+        <li class="form-card">
+            <div class="card-header">
+                <h2 class="card-title"></h2>
+                <span class="badge"></span>
+            </div>
+            <p class="card-date"><time></time></p>
+            <div class="card-actions">
+                <button type="button" class="btn btn-primary" data-open>Open</button>
+            </div>
+        </li>
+    </template>
+
+    <template id="integration-card">
+        <li class="form-card">
+            <div class="card-header">
+                <h2 class="card-title"></h2>
+                <span class="badge"></span>
+            </div>
+            <p class="card-date integration-origin"></p>
+            <p class="card-date integration-date"></p>
+            <details class="integration-embed" hidden>
+                <summary>Embed code</summary>
+                <textarea class="integration-code" aria-label="Iframe HTML" rows="3"
+                          readonly spellcheck="false" autocomplete="off"></textarea>
+                <button type="button" class="btn btn-secondary" data-copy-embed>Copy code</button>
+            </details>
+            <div class="card-actions" data-integration-actions hidden>
+                <button type="button" class="btn btn-danger" data-revoke>Revoke key</button>
+            </div>
+        </li>
+    </template>
+
+    <dialog id="details" class="details" aria-labelledby="detail-title">
+        <header class="modal-header">
+            <h2 id="detail-title">Submission details</h2>
+            <button type="button" id="close-details" class="modal-close" aria-label="Close submission" autofocus>×</button>
+        </header>
+
+        <p id="detail-status" class="detail-status" role="status"></p>
+        <button type="button" id="retry-details" class="btn btn-secondary" hidden>Retry</button>
+        <section id="detail-content" aria-label="Submission content" hidden>
+            <dl class="modal-fields">
+                <div class="modal-field">
+                    <dt>Name</dt>
+                    <dd id="detail-name"></dd>
+                </div>
+                <div class="modal-field" id="phone-field" hidden>
+                    <dt>Phone</dt>
+                    <dd id="detail-phone"></dd>
+                </div>
+                <div class="modal-field" id="email-field" hidden>
+                    <dt>Email</dt>
+                    <dd id="detail-email"></dd>
+                </div>
+                <div class="modal-field">
+                    <dt>Date and time</dt>
+                    <dd id="detail-date"></dd>
+                </div>
+                <div class="modal-field">
+                    <dt>Message</dt>
+                    <dd id="detail-message" class="modal-message"></dd>
+                </div>
+            </dl>
+
+            <div id="detail-actions" class="card-actions">
+                <button type="button" id="set-viewed" class="btn btn-secondary" hidden></button>
+                <button type="button" id="delete-form" class="btn btn-danger" hidden>Move to trash</button>
+                <button type="button" id="restore-form" class="btn btn-primary" hidden>Restore</button>
+            </div>
+            <div id="confirm-delete" class="confirmation" hidden>
+                <p>Move this submission to the trash?</p>
+                <div class="card-actions">
+                    <button type="button" id="cancel-delete" class="btn btn-secondary">Cancel</button>
+                    <button type="button" id="accept-delete" class="btn btn-danger">Move to trash</button>
+                </div>
+            </div>
+        </section>
+    </dialog>
 </body>
 </html>
